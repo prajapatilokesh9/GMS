@@ -1,0 +1,866 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public", "auth", "gym", "billing", "personal_training", "equipment"]
+}
+
+// ============================================================
+// SUPPLEMENT COMPANIES — Supplier accounts
+// ============================================================
+model SupplementCompany {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String   @db.VarChar(200)
+  slug      String   @db.VarChar(200)
+  email     String?  @db.VarChar(255)
+  phone     String?  @db.VarChar(20)
+  address   String?  @db.Text
+  city      String?  @db.VarChar(100)
+  state     String?  @db.VarChar(100)
+  country   String   @default("IN") @db.VarChar(2)
+  pincode   String?  @db.VarChar(10)
+  logoUrl   String?  @map("logo_url") @db.VarChar(500)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant     Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplements Supplement[]
+  orders      SupplementOrder[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([isActive])
+  @@map("supplement_companies")
+  @@schema("billing")
+}
+
+// ============================================================
+// SUPPLEMENTS — Product catalogue
+// ============================================================
+model Supplement {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  name        String   @db.VarChar(200)
+  slug        String   @db.VarChar(200)
+  category    String   @db.VarChar(100) // protein, creatine, pre_workout, vitamins, ayurvedic, etc.
+  description String?  @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  mrp         Decimal  @map("mrp") @db.Decimal(10, 2)
+  unit        String   @default("unit") @db.VarChar(50) // unit, kg, g, ml, box, pack
+  unitValue   String?  @map("unit_value") @db.VarChar(50) // e.g. "1kg", "500g", "30 servings"
+  stock       Int      @default(0)
+  images      Json?    @default("[]")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant  Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company SupplementCompany  @relation(fields: [companyId], references: [id])
+  orders  SupplementOrder[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([category, isActive])
+  @@map("supplements")
+  @@schema("billing")
+}
+
+// ============================================================
+// SUPPLEMENT ORDERS — Customer purchases
+// ============================================================
+model SupplementOrder {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  gymId        String   @map("gym_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
+  supplementId String   @map("supplement_id") @db.Uuid
+  quantity     Int      @default(1)
+  unitPrice    Decimal  @map("unit_price") @db.Decimal(10, 2)
+  totalAmount  Decimal  @map("total_amount") @db.Decimal(10, 2)
+  status       String   @default("pending") @db.VarChar(20) // pending, confirmed, shipped, delivered, cancelled, returned
+  paymentId    String?  @map("payment_id") @db.Uuid
+  trackingId   String?  @map("tracking_id") @db.VarChar(255)
+  notes        String?  @db.Text
+  deliveredAt  DateTime? @map("delivered_at")
+  cancelledAt  DateTime? @map("cancelled_at")
+  returnReason String?  @map("return_reason") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gym       Gym                @relation(fields: [gymId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
+  company   SupplementCompany  @relation(fields: [companyId], references: [id])
+  supplement Supplement        @relation(fields: [supplementId], references: [id])
+
+  @@index([tenantId])
+  @@index([gymId, status])
+  @@index([userId])
+  @@index([companyId])
+  @@index([status])
+  @@map("supplement_orders")
+  @@schema("billing")
+}
+
+// ============================================================
+// PERSONAL TRAINING — Trainer profiles & PT packages
+// ============================================================
+model Trainer {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  gymId           String   @map("gym_id") @db.Uuid
+  specialization  String?  @db.VarChar(200)
+  certifications  Json?    @default("[]")
+  bio             String?  @db.Text
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gym       Gym         @relation(fields: [gymId], references: [id])
+  ptSessions PtSession[] @relation("PtSessionTrainer")
+  commissionRules CommissionRule[]
+  commissionPayouts CommissionPayout[]
+
+  @@index([tenantId, gymId, isActive])
+  @@index([tenantId, userId])
+  @@map("trainers")
+  @@schema("personal_training")
+}
+
+model PtPackage {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  gymId         String?  @map("gym_id") @db.Uuid
+  name          String   @db.VarChar(200)
+  description   String?  @db.Text
+  totalSessions Int      @map("total_sessions")
+  price         Decimal  @db.Decimal(10, 2)
+  validityDays  Int      @map("validity_days")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gym       Gym?        @relation(fields: [gymId], references: [id])
+  ptSessions PtSession[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, isActive])
+  @@index([tenantId, gymId])
+  @@map("pt_packages")
+  @@schema("personal_training")
+}
+
+model PtSession {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  trainerId   String    @map("trainer_id") @db.Uuid
+  clientId    String    @map("client_id") @db.Uuid
+  packageId   String?   @map("package_id") @db.Uuid
+  gymId       String?   @map("gym_id") @db.Uuid
+  scheduledAt DateTime  @map("scheduled_at")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  cancelledAt DateTime? @map("cancelled_at")
+  status      String    @default("scheduled") @db.VarChar(20)
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  tenant  Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  trainer Trainer    @relation("PtSessionTrainer", fields: [trainerId], references: [id])
+  client  User       @relation("PtSessionClient", fields: [clientId], references: [id])
+  package PtPackage? @relation(fields: [packageId], references: [id])
+  gym     Gym?      @relation(fields: [gymId], references: [id])
+  commissionPayouts CommissionPayout[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, trainerId])
+  @@index([tenantId, clientId])
+  @@index([scheduledAt])
+  @@map("pt_sessions")
+  @@schema("personal_training")
+}
+
+model CommissionRule {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  gymId           String    @map("gym_id") @db.Uuid
+  trainerId       String?   @map("trainer_id") @db.Uuid
+  commissionType  String    @map("commission_type") @db.VarChar(20)
+  commissionValue Decimal   @map("commission_value") @db.Decimal(10, 2)
+  effectiveFrom   DateTime  @map("effective_from")
+  effectiveTo     DateTime? @map("effective_to")
+  status          String    @default("active") @db.VarChar(20)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gym     Gym     @relation(fields: [gymId], references: [id])
+  trainer Trainer? @relation(fields: [trainerId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([tenantId, trainerId])
+  @@index([tenantId, gymId])
+  @@index([effectiveFrom])
+  @@map("commission_rules")
+  @@schema("personal_training")
+}
+
+model CommissionPayout {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  trainerId         String    @map("trainer_id") @db.Uuid
+  sessionId         String    @map("session_id") @db.Uuid
+  grossAmount       Decimal   @map("gross_amount") @db.Decimal(10, 2)
+  commissionAmount  Decimal   @map("commission_amount") @db.Decimal(10, 2)
+  payoutStatus      String    @default("pending") @map("payout_status") @db.VarChar(20)
+  payoutDate        DateTime? @map("payout_date")
+  paymentReference  String?   @map("payment_reference") @db.VarChar(255)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  tenant  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  trainer Trainer   @relation(fields: [trainerId], references: [id])
+  session PtSession @relation(fields: [sessionId], references: [id])
+
+  @@index([tenantId, payoutStatus])
+  @@index([tenantId, trainerId])
+  @@index([sessionId])
+  @@index([payoutDate])
+  @@map("commission_payouts")
+  @@schema("personal_training")
+}
+
+// ============================================================
+// TENANTS — Multi-tenant root
+// ============================================================
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(200)
+  slug      String   @unique @db.VarChar(100)
+  domain    String?  @unique @db.VarChar(255)
+  logoUrl   String?  @map("logo_url") @db.VarChar(500)
+  settings  Json?    @default("{}")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users                 User[]
+  userRoles             UserRole[]
+  gyms                  Gym[]
+  auditLogs             AuditLog[]
+  loginHistory          LoginHistory[]
+  notificationTemplates NotificationTemplate[]
+  roleTemplates         Role[] // platform-level role templates
+  membershipPlans       MembershipPlan[]
+  memberships           Membership[]
+  payments              Payment[]
+  supplementCompanies   SupplementCompany[]
+  supplements           Supplement[]
+  supplementOrders      SupplementOrder[]
+  trainers              Trainer[]
+  ptPackages            PtPackage[]
+  ptSessions            PtSession[]
+  commissionRules       CommissionRule[]
+  commissionPayouts     CommissionPayout[]
+  equipmentCatalogue    EquipmentCatalogue[]
+  equipmentInventory    EquipmentInventory[]
+  inventoryStatusLogs    InventoryStatusLog[]
+  maintenanceJobs        MaintenanceJob[]
+  maintenanceStatusLogs  MaintenanceStatusLog[]
+ 
+  @@map("tenants")
+  @@schema("public")
+}
+
+// ============================================================
+// USERS
+// ============================================================
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  phone         String?   @unique @db.VarChar(20)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  firstName     String    @map("first_name") @db.VarChar(100)
+  lastName      String    @map("last_name") @db.VarChar(100)
+  avatarUrl     String?   @map("avatar_url") @db.VarChar(500)
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  phoneVerified Boolean   @default(false) @map("phone_verified")
+  lastLoginAt   DateTime? @map("last_login_at")
+  refreshToken  String?   @map("refresh_token")
+  metadata      Json?     @default("{}")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles           UserRole[]
+  gymsCreated         Gym[]                @relation("GymOwner")
+  auditLogs           AuditLog[]
+  passwordResetTokens PasswordResetToken[]
+  loginHistory        LoginHistory[]
+  memberships         Membership[]
+  supplementOrders    SupplementOrder[]
+  trainerProfile      Trainer?
+  ptSessionsAsClient  PtSession[] @relation("PtSessionClient")
+
+  @@index([tenantId])
+  @@index([email])
+  @@index([tenantId, email])
+  @@map("users")
+  @@schema("public")
+}
+
+// ============================================================
+// ROLES
+// ============================================================
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String?  @map("tenant_id") @db.Uuid // null = platform-level
+  name        String   @db.VarChar(100)
+  slug        String   @db.VarChar(100)
+  description String?  @db.Text
+  isSystem    Boolean  @default(false) @map("is_system")
+  dataScope   String   @default("TENANT") @map("data_scope") @db.VarChar(20)
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant          Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("roles")
+  @@schema("public")
+}
+
+// ============================================================
+// USER ROLES — Junction table
+// ============================================================
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  gymId     String?  @map("gym_id") @db.Uuid // scope to gym (nullable)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, gymId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([gymId])
+  @@map("user_roles")
+  @@schema("public")
+}
+
+// ============================================================
+// PERMISSIONS
+// ============================================================
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  category    String   @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  rolePermissions RolePermission[]
+
+  @@index([category])
+  @@map("permissions")
+  @@schema("public")
+}
+
+// ============================================================
+// ROLE PERMISSIONS — Junction table
+// ============================================================
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+  @@schema("public")
+}
+
+// ============================================================
+// GYMS
+// ============================================================
+model Gym {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  ownerId          String   @map("owner_id") @db.Uuid
+  name             String   @db.VarChar(200)
+  slug             String   @db.VarChar(200)
+  email            String?  @db.VarChar(255)
+  phone            String?  @db.VarChar(20)
+  addressLine1     String?  @map("address_line1") @db.VarChar(255)
+  addressLine2     String?  @map("address_line2") @db.VarChar(255)
+  city             String?  @db.VarChar(100)
+  state            String?  @db.VarChar(100)
+  country          String?  @default("IN") @db.VarChar(2)
+  pincode          String?  @db.VarChar(10)
+  latitude         Decimal? @db.Decimal(10, 7)
+  longitude        Decimal? @db.Decimal(10, 7)
+  timezone         String?  @default("Asia/Kolkata") @db.VarChar(50)
+  logoUrl          String?  @map("logo_url") @db.VarChar(500)
+  coverImageUrl    String?  @map("cover_image_url") @db.VarChar(500)
+  subscriptionPlan String?  @map("subscription_plan") @db.VarChar(50) // deferred FK to membership_plans
+  isActive         Boolean  @default(false) @map("is_active")
+  onboardingStatus String   @default("pending") @map("onboarding_status") @db.VarChar(50) // pending | documents | review | active | rejected
+  maxStaffCount    Int?     @default(10) @map("max_staff_count")
+  maxMemberCount   Int?     @default(500) @map("max_member_count")
+  openingTime      String?  @map("opening_time") @db.VarChar(5)
+  closingTime      String?  @map("closing_time") @db.VarChar(5)
+  operatingDays    String?  @map("operating_days") @db.VarChar(100) // comma-separated
+  metadata         Json?    @default("{}")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner        User          @relation("GymOwner", fields: [ownerId], references: [id])
+  gymDocuments GymDocument[]
+  inventory    EquipmentInventory[]
+
+  // Sprint 2 — verification workflow
+  rejectionReason String?   @map("rejection_reason") @db.Text
+  verifiedAt      DateTime? @map("verified_at")
+  verifiedBy      String?   @map("verified_by") @db.Uuid
+
+  membershipPlans MembershipPlan[]
+  memberships     Membership[]
+  supplementOrders SupplementOrder[]
+  trainers          Trainer[]
+  ptPackages        PtPackage[]
+  ptSessions        PtSession[]
+  commissionRules   CommissionRule[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([ownerId])
+  @@index([onboardingStatus])
+  @@map("gyms")
+  @@schema("gym")
+}
+
+// ============================================================
+// GYM DOCUMENTS — Onboarding document uploads
+// ============================================================
+model GymDocument {
+  id           String   @id @default(uuid()) @db.Uuid
+  gymId        String   @map("gym_id") @db.Uuid
+  documentType String   @map("document_type") @db.VarChar(50) // business_license, owner_id_proof, gym_photo, utility_bill, other
+  fileName     String   @map("file_name") @db.VarChar(255)
+  filePath     String   @map("file_path") @db.Text
+  mimeType     String   @map("mime_type") @db.VarChar(100)
+  fileSize     Int      @map("file_size")
+  status       String   @default("pending") @db.VarChar(20) // pending, approved, rejected
+  uploadedBy   String   @map("uploaded_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@unique([gymId, documentType])
+  @@index([gymId, status])
+  @@map("gym_documents")
+  @@schema("gym")
+}
+
+// ============================================================
+// MEMBERSHIP PLANS — Gym-defined subscription offerings
+// ============================================================
+model MembershipPlan {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  gymId            String   @map("gym_id") @db.Uuid
+  name             String   @db.VarChar(200)
+  type             String   @db.VarChar(20) // fixed, payg, flex
+  description      String?  @db.Text
+  priceAmount      Decimal  @map("price_amount") @db.Decimal(10, 2)
+  currency         String   @default("INR") @db.VarChar(3)
+  durationDays     Int?     @map("duration_days") // null for PAYG
+  sessionsIncluded Int?     @map("sessions_included")
+  features         Json?    @default("{}")
+  autoRenew        Boolean  @default(true) @map("auto_renew")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  tenant     Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gym        Gym          @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  Membership Membership[]
+
+  @@index([tenantId])
+  @@index([gymId, isActive])
+  @@map("membership_plans")
+  @@schema("billing")
+}
+
+// ============================================================
+// MEMBERSHIPS — Active customer subscriptions
+// ============================================================
+model Membership {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  gymId         String    @map("gym_id") @db.Uuid
+  customerId    String    @map("customer_id") @db.Uuid
+  planId        String?   @map("plan_id") @db.Uuid
+  startDate     DateTime  @map("start_date")
+  endDate       DateTime? @map("end_date")
+  status        String    @default("active") @db.VarChar(20) // active, expired, paused, cancelled, suspended
+  pricePaid     Decimal   @map("price_paid") @db.Decimal(10, 2)
+  paymentMethod String?   @map("payment_method") @db.VarChar(50)
+  autoRenew     Boolean   @default(true) @map("auto_renew")
+  renewalDate   DateTime? @map("renewal_date")
+  lastRenewedAt DateTime? @map("last_renewed_at")
+  pausedAt      DateTime? @map("paused_at")
+  pausedUntil   DateTime? @map("paused_until")
+  walletBalance Decimal   @default(0) @map("wallet_balance") @db.Decimal(10, 2)
+  cancelledAt   DateTime? @map("cancelled_at")
+  metadata      Json?     @default("{}")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gym      Gym             @relation(fields: [gymId], references: [id])
+  customer User            @relation(fields: [customerId], references: [id])
+  plan     MembershipPlan? @relation(fields: [planId], references: [id])
+
+  @@index([tenantId])
+  @@index([gymId, status])
+  @@index([customerId, gymId])
+  @@index([renewalDate])
+  @@index([status])
+  @@map("memberships")
+  @@schema("billing")
+}
+
+// ============================================================
+// PAYMENTS — Central payment ledger for all revenue streams
+// ============================================================
+model Payment {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  entityType     String    @map("entity_type") @db.VarChar(50) // membership, supplement_order, pt_session, equipment_lead, maintenance_job
+  entityId       String    @map("entity_id") @db.VarChar(50)
+  amount         Decimal   @db.Decimal(10, 2)
+  currency       String    @default("INR") @db.VarChar(3)
+  gateway        String?   @db.VarChar(50) // razorpay, stripe
+  gatewayTxnId   String?   @map("gateway_txn_id") @db.VarChar(255)
+  gatewayOrderId String?   @map("gateway_order_id") @db.VarChar(255)
+  status         String    @default("pending") @db.VarChar(20) // pending, completed, failed, refunded, disputed
+  refundAmount   Decimal   @default(0) @map("refund_amount") @db.Decimal(10, 2)
+  refundReason   String?   @map("refund_reason") @db.Text
+  refundedAt     DateTime? @map("refunded_at")
+  metadata       Json?     @default("{}")
+  reconciledAt   DateTime? @map("reconciled_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([entityType, entityId])
+  @@index([gateway, gatewayTxnId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payments")
+  @@schema("billing")
+}
+
+// ============================================================
+// PASSWORD RESET TOKENS — Secure password reset flow
+// ============================================================
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("password_reset_tokens")
+  @@schema("auth")
+}
+
+// ============================================================
+// LOGIN HISTORY — User-facing login audit trail
+// ============================================================
+model LoginHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  eventType String   @map("event_type") @db.VarChar(20) // LOGIN, LOGOUT, FAILED
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent") @db.Text
+  metadata  Json?    @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("login_history")
+  @@schema("auth")
+}
+
+// ============================================================
+// NOTIFICATION TEMPLATES — Stored template definitions
+// ============================================================
+model NotificationTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String?  @map("tenant_id") @db.Uuid // null = platform-level template
+  channel   String   @db.VarChar(20) // email, sms, push, in_app
+  eventName String   @map("event_name") @db.VarChar(100)
+  subject   String?  @db.VarChar(255)
+  body      String   @db.Text
+  metadata  Json?    @default("{}")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
+
+  @@unique([channel, eventName, tenantId])
+  @@index([tenantId])
+  @@map("notification_templates")
+  @@schema("public")
+}
+
+// ============================================================
+// AUDIT LOGS
+// ============================================================
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String?  @map("tenant_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  action      String   @db.VarChar(50) // CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT
+  entityType  String   @map("entity_type") @db.VarChar(50)
+  entityId    String?  @map("entity_id") @db.Uuid
+  description String?  @db.Text
+  oldValue    Json?    @map("old_value")
+  newValue    Json?    @map("new_value")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.Text
+  metadata    Json?    @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+  @@schema("public")
+}
+
+// ============================================================
+// EQUIPMENT — Catalogue, instances, maintenance, AMC
+// ============================================================
+model EquipmentCatalogue {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  name           String    @db.VarChar(200)
+  sku            String    @db.VarChar(100)
+  brand          String    @db.VarChar(100)
+  model          String    @db.VarChar(100)
+  category       String    @db.VarChar(100)
+  subcategory    String?   @db.VarChar(100)
+  specs          Json?     @default("{}")
+  unitCost         Decimal   @map("unit_cost") @db.Decimal(10, 2)
+  warrantyMonths   Int?      @map("warranty_months") @default(12)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, category])
+  @@index([tenantId, subcategory])
+  @@index([brand, model])
+  @@index([sku])
+  @@unique([tenantId, brand, model])
+  @@unique([tenantId, sku])
+  inventory EquipmentInventory[]
+
+  @@map("equipment_catalogue")
+  @@schema("equipment")
+}
+
+model EquipmentInventory {
+  id                        String        @id @default(uuid()) @db.Uuid
+  tenantId                  String        @map("tenant_id") @db.Uuid
+  catalogueItemId           String        @map("catalogue_item_id") @db.Uuid
+  serialNumber              String        @map("serial_number") @db.VarChar(200)
+  gymId                     String        @map("gym_id") @db.Uuid
+  location                  String?       @db.VarChar(200)
+  purchaseDate              DateTime      @map("purchase_date") @db.Date
+  purchaseCost              Decimal?      @map("purchase_cost") @db.Decimal(10, 2)
+  supplier                  String?       @db.VarChar(200)
+  warrantyStartDate         DateTime?     @map("warranty_start_date") @db.Date
+  warrantyEndDate           DateTime?     @map("warranty_end_date") @db.Date
+  lastMaintenanceAt         DateTime?     @map("last_maintenance_at")
+  nextMaintenanceAt         DateTime?     @map("next_maintenance_at")
+  maintenanceIntervalMonths Int?          @default(6) @map("maintenance_interval_months")
+  status                    String        @default("ordered") @db.VarChar(50)
+  notes                     String?       @db.Text
+  isActive                  Boolean       @default(true) @map("is_active")
+  createdAt                 DateTime      @default(now()) @map("created_at")
+  updatedAt                 DateTime      @updatedAt @map("updated_at")
+  deletedAt                 DateTime?     @map("deleted_at")
+
+  catalogueItem EquipmentCatalogue @relation(fields: [catalogueItemId], references: [id], onDelete: Restrict)
+  gym           Gym                @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  statusLogs    InventoryStatusLog[]
+  maintenanceJobs MaintenanceJob[]
+
+  @@unique([tenantId, serialNumber])
+  @@index([tenantId, gymId])
+  @@index([tenantId, catalogueItemId])
+  @@index([tenantId, status])
+  @@index([tenantId, nextMaintenanceAt])
+  @@index([tenantId, warrantyEndDate])
+  @@map("equipment_inventory")
+  @@schema("equipment")
+}
+
+model InventoryStatusLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  inventoryId String   @map("inventory_id") @db.Uuid
+  fromStatus  String?  @map("from_status") @db.VarChar(50)
+  toStatus    String   @map("to_status") @db.VarChar(50)
+  changedBy   String?  @map("changed_by") @db.Uuid
+  reason      String?  @map("reason") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  inventory EquipmentInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([inventoryId])
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@map("inventory_status_log")
+  @@schema("equipment")
+}
+
+// ============================================================
+// EQUIPMENT — Maintenance
+// ============================================================
+model MaintenanceJob {
+  id                        String    @id @default(uuid()) @db.Uuid
+  tenantId                  String    @map("tenant_id") @db.Uuid
+  inventoryId               String    @map("inventory_id") @db.Uuid
+  scheduledDate             DateTime  @map("scheduled_date") @db.Date
+  startedAt                 DateTime? @map("started_at")
+  completedAt               DateTime? @map("completed_at")
+  type                      String    @default("preventive") @db.VarChar(20)
+  status                    String    @default("scheduled") @db.VarChar(50)
+
+  // Technician assignment (loose UUID — no FK)
+  assignedTo                String?   @map("assigned_to") @db.Uuid
+  assignedTechnicianName    String?   @map("assigned_technician_name") @db.VarChar(200)
+  assignedToType            String?   @default("internal") @map("assigned_to_type") @db.VarChar(20)
+  assignedToExternalId      String?   @map("assigned_to_external_id") @db.VarChar(100)
+  assignedToExternalName    String?   @map("assigned_to_external_name") @db.VarChar(200)
+
+  // Cost tracking
+  estimatedCost             Decimal?  @map("estimated_cost") @db.Decimal(10, 2)
+  laborCost                 Decimal?  @map("labor_cost") @db.Decimal(10, 2)
+  partsCost                 Decimal?  @map("parts_cost") @db.Decimal(10, 2)
+  totalCost                 Decimal?  @map("total_cost") @db.Decimal(10, 2)
+  currency                  String    @default("INR") @db.VarChar(3)
+  invoiceReference          String?   @map("invoice_reference") @db.VarChar(200)
+  partsUsed                 Json?     @map("parts_used")
+
+  // Approval
+  approvalRequired          Boolean   @default(false) @map("approval_required")
+  approvedBy                String?   @map("approved_by") @db.Uuid
+  approvedAt                DateTime? @map("approved_at")
+
+  // AMC integration (reserved for E4.4)
+  amcContractId             String?   @map("amc_contract_id") @db.Uuid
+  amcCovered                Boolean?  @map("amc_covered")
+  amcClaimReference         String?   @map("amc_claim_reference") @db.VarChar(200)
+  amcBillingType            String?   @map("amc_billing_type") @db.VarChar(20)
+  amcApprovedAmount         Decimal?  @map("amc_approved_amount") @db.Decimal(10, 2)
+
+  // Notes
+  description               String?   @db.Text
+  outcome                   String?   @db.Text
+
+  // Soft delete
+  isActive                  Boolean   @default(true) @map("is_active")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  deletedAt                 DateTime? @map("deleted_at")
+
+  inventory                 EquipmentInventory @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
+  tenant                    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  statusLogs                MaintenanceStatusLog[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, inventoryId])
+  @@index([tenantId, scheduledDate])
+  @@index([tenantId, assignedTo])
+  @@index([tenantId, amcContractId])
+  @@map("maintenance_job")
+  @@schema("equipment")
+}
+
+model MaintenanceStatusLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  jobId       String   @map("job_id") @db.Uuid
+  fromStatus  String?  @map("from_status") @db.VarChar(50)
+  toStatus    String   @map("to_status") @db.VarChar(50)
+  changedBy   String?  @map("changed_by") @db.Uuid
+  reason      String?  @map("reason") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  job     MaintenanceJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@map("maintenance_status_log")
+  @@schema("equipment")
+}

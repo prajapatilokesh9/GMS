@@ -1,0 +1,15 @@
+/.opencode
+node_modules/
+dist/
+.next/
+coverage/
+tmp/
+*.log
+.env
+.env.local
+.env.*.local
+uploads/
+*.tsbuildinfo
+.turbo/
+/build
+/out/

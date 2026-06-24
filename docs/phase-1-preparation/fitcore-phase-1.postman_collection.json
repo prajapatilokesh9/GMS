@@ -1,0 +1,527 @@
+{
+  "info": {
+    "_postman_id": "fitcore-phase1-api",
+    "name": "FitCore Pro Phase 1 API",
+    "description": "API collection for FitCore Pro Phase 1 - Core fitness SaaS platform",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "language": "json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "description": "Authentication and user management endpoints",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"email\": \"user@example.com\",
+  \"password\": \"SecurePass123!\",
+  \"fullName\": \"John Doe\",
+  \"phone\": \"+1234567890\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"email\": \"user@example.com\",
+  \"password\": \"SecurePass123!\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"email\": \"user@example.com\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"token\": \"reset-token-here\",
+  \"password\": \"NewSecurePass123!\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"oldPassword\": \"OldSecurePass123!\",
+  \"newPassword\": \"NewSecurePass123!\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "change-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Login History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login-history?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login-history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Gym Management",
+      "description": "Gym CRUD and management endpoints",
+      "item": [
+        {
+          "name": "Create Gym",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"gymName\": \"Demo Active Gym\",
+  \"email\": \"gym@example.com\",
+  \"phone\": \"+1234567890\",
+  \"addressLine1\": \"123 Fitness Street\",
+  \"city\": \"Mumbai\",
+  \"state\": \"Maharashtra\",
+  \"country\": \"IN\",
+  \"pincode\": \"400001\",
+  \"licenseNumber\": \"LIC-2024-001\",
+  \"maxStaffCount\": 10,
+  \"maxMemberCount\": 500,
+  \"openingTime\": \"06:00\",
+  \"closingTime\": \"22:00\",
+  \"operatingDays\": \"Mon,Tue,Wed,Thu,Fri,Sat,Sun\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gyms",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Gyms",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gyms?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Gym by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{id}",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{id}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Gym",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"gymName\": \"Updated Gym Name\",
+  \"city\": \"Updated City\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{id}",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{id}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Gym",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"onboardingStatus\": \"active\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{id}/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{id}", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Gym",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"onboardingStatus\": \"rejected\",
+  \"rejectionReason\": \"Business license did not match registered address.\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{id}/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{id}", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Gyms",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gyms/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "my"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Document Management",
+      "description": "Gym document upload and management endpoints",
+      "item": [
+        {
+          "name": "Upload Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "value": "", "type": "file" },
+                { "key": "documentType", "value": "business_license" },
+                { "key": "uploadedBy", "value": "{userId}" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{gymId}/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{gymId}", "documents"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{gymId}/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{gymId}", "documents"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Document Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"status\": \"approved\"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{gymId}/documents/{docId}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{gymId}", "documents", "{docId}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{gymId}/documents/{docId}",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{gymId}", "documents", "{docId}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Gym Staff Management",
+      "description": "Gym staff assignment and management endpoints",
+      "item": [
+        {
+          "name": "Add Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{
+  \"userId\": "{userId}",
+  \"roleId\": "{roleId}"
+}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{gymId}/staff",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{gymId}", "staff"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{gymId}/staff",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{gymId}", "staff"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gyms/{gymId}/staff/{userRoleId}",
+              "host": ["{{baseUrl}}"],
+              "path": ["gyms", "{gymId}", "staff", "{userRoleId}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "description": "System health and status endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000/api/v1",
+      "description": "Base URL for the FitCore Pro API"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "description": "Access token for authenticated requests"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "description": "Current user ID"
+    },
+    {
+      "key": "gymId",
+      "value": "",
+      "description": "Gym ID for gym-specific operations"
+    },
+    {
+      "key": "docId",
+      "value": "",
+      "description": "Document ID for document-specific operations"
+    },
+    {
+      "key": "roleId",
+      "value": "",
+      "description": "Role ID for role-specific operations"
+    }
+  ]
+}

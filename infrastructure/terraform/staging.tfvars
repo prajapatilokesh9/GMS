@@ -1,0 +1,10 @@
+aws_region           = "ap-south-1"
+vpc_cidr             = "10.0.0.0/16"
+container_port       = 4000
+ecs_cpu              = 512
+ecs_memory           = 1024
+rds_instance_class   = "db.t4g.micro"
+rds_allocated_storage = 20
+redis_node_type      = "cache.t4g.micro"
+domain_name          = "api-staging.fitcore.app"
+ecr_repository_name  = "fitcore-backend"

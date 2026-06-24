@@ -1,0 +1,90 @@
+{
+  "name": "@fitcore/backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/core/server.ts",
+    "build": "tsc",
+    "start": "node dist/core/server.js",
+    "test": "jest --passWithNoTests --detectOpenHandles --forceExit",
+    "test:coverage": "jest --passWithNoTests --coverage --detectOpenHandles --forceExit",
+    "lint": "eslint src --ext .ts",
+    "clean": "rimraf dist",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx src/database/seed.ts",
+    "db:studio": "prisma studio",
+    "db:validate": "prisma validate"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.1072.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1072.0",
+    "@prisma/client": "^5.14.0",
+    "@sentry/node": "^10.58.0",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.7.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^4.19.0",
+    "express-async-errors": "^3.1.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.4.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.2.0",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^9.0.1",
+    "winston": "^3.13.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/morgan": "^1.9.9",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^20.14.0",
+    "@types/supertest": "^6.0.2",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
+    "prisma": "^5.14.0",
+    "rimraf": "^5.0.5",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.1.0",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.0"
+  },
+  "prisma": {
+    "seed": "tsx src/database/seed.ts"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": [
+      "src"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.ts"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/core/server.ts",
+      "!src/database/seed.ts"
+    ]
+  }
+}

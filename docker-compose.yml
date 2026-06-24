@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  postgres:
+    extends:
+      file: infrastructure/docker/docker-compose.yml
+      service: postgres
+
+  redis:
+    extends:
+      file: infrastructure/docker/docker-compose.yml
+      service: redis
+
+volumes:
+  postgres-data:
+  redis-data:
